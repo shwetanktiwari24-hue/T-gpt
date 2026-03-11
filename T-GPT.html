@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>T-GPT — AI Chat + Image Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050810;--bg2:#090d1c;--bg3:#0f1424;--bg4:#161c30;
+  --b1:#1a2038;--b2:#242d4a;
+  --p1:#8b5cf6;--p2:#a78bfa;--p3:#c4b5fd;
+  --c1:#06b6d4;--c2:#22d3ee;
+  --g1:#10b981;--g2:#34d399;
+  --or:#f59e0b;--re:#f87171;
+  --t1:#e8eaf6;--t2:#7986b0;--t3:#363d5c;
+  --fn:'Outfit',sans-serif;--mo:'Fira Code',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{background:var(--bg);color:var(--t1);font-family:var(--fn);display:flex;flex-direction:column;}
+
+/* BG */
+.bgrid{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(139,92,246,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;}
+.gl{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(90px);}
+.gl1{width:600px;height:600px;background:radial-gradient(circle,rgba(139,92,246,.1) 0%,transparent 65%);top:-200px;left:-100px;animation:gf 10s ease-in-out infinite;}
+.gl2{width:500px;height:500px;background:radial-gradient(circle,rgba(6,182,212,.07) 0%,transparent 65%);bottom:-150px;right:-100px;animation:gf2 12s ease-in-out infinite;}
+.gl3{width:300px;height:300px;background:radial-gradient(circle,rgba(16,185,129,.05) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-50%);}
+@keyframes gf{0%,100%{transform:translateY(0);}50%{transform:translateY(40px);}}
+@keyframes gf2{0%,100%{transform:translateY(0);}50%{transform:translateY(-35px);}}
+
+/* ══ SETUP ══ */
+#setup{position:fixed;inset:0;z-index:999;background:rgba(5,8,16,.97);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(24px);}
+.card{background:var(--bg2);border:1px solid var(--b2);border-radius:24px;padding:40px 38px;max-width:480px;width:100%;position:relative;overflow:hidden;box-shadow:0 50px 100px rgba(0,0,0,.7),0 0 0 1px rgba(139,92,246,.1);animation:ci .5s cubic-bezier(.16,1,.3,1);}
+@keyframes ci{from{opacity:0;transform:translateY(30px) scale(.96);}to{opacity:1;transform:none;}}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--p1),var(--c1),var(--p2),transparent);}
+
+.logo-area{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:28px;}
+.logo-ring{width:78px;height:78px;border-radius:22px;background:linear-gradient(135deg,var(--p1),var(--c1));display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 0 50px rgba(139,92,246,.5),0 0 100px rgba(139,92,246,.2);animation:lgp 3s ease-in-out infinite;}
+@keyframes lgp{0%,100%{box-shadow:0 0 50px rgba(139,92,246,.5),0 0 100px rgba(139,92,246,.2);}50%{box-shadow:0 0 75px rgba(6,182,212,.6),0 0 130px rgba(139,92,246,.3);}}
+.logo-name{font-size:34px;font-weight:900;letter-spacing:-1.5px;background:linear-gradient(135deg,var(--p1),var(--c1),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-tag{font-size:12px;color:var(--t2);text-align:center;line-height:1.7;}
+.feat-row{display:flex;gap:8px;justify-content:center;margin-top:4px;}
+.feat{padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.feat.chat{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);color:var(--p2);}
+.feat.img{background:rgba(6,182,212,.12);border:1px solid rgba(6,182,212,.3);color:var(--c2);}
+.feat.free{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:var(--g2);}
+
+.se{background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.25);border-radius:10px;padding:11px 14px;font-size:12.5px;color:var(--re);margin-bottom:14px;display:none;line-height:1.6;}
+.lb{font-size:10.5px;font-weight:700;color:var(--t2);letter-spacing:.9px;text-transform:uppercase;margin-bottom:6px;margin-top:12px;}
+.iwr{position:relative;}
+.iwr input{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:11px;padding:13px 46px 13px 15px;font-family:var(--mo);font-size:12.5px;color:var(--t1);outline:none;transition:all .2s;}
+.iwr input:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(139,92,246,.1);}
+.iwr input::placeholder{color:var(--t3);}
+.eyb{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t3);font-size:16px;}
+.msl{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:11px;padding:13px 40px 13px 15px;font-family:var(--fn);font-size:13px;color:var(--t1);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237986b0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;transition:border-color .2s;}
+.msl:focus{border-color:var(--p1);}
+.msl option{background:var(--bg3);}
+.note-box{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:11px 14px;margin-top:14px;font-size:11.5px;color:var(--t2);line-height:1.8;}
+.note-box a{color:var(--p2);text-decoration:none;}
+.lbtn{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--p1),var(--c1));font-family:var(--fn);font-weight:700;font-size:15px;color:#fff;cursor:pointer;transition:all .25s;box-shadow:0 0 25px rgba(139,92,246,.35);margin-top:18px;}
+.lbtn:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(139,92,246,.55);}
+
+/* ══ HEADER ══ */
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid var(--b1);background:rgba(5,8,16,.92);backdrop-filter:blur(20px);flex-shrink:0;}
+.hlog{display:flex;align-items:center;gap:10px;}
+.hic{width:32px;height:32px;background:linear-gradient(135deg,var(--p1),var(--c1));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;animation:hgl 3s ease-in-out infinite;}
+@keyframes hgl{0%,100%{box-shadow:0 0 14px rgba(139,92,246,.45);}50%{box-shadow:0 0 24px rgba(6,182,212,.6);}}
+.hn{font-weight:900;font-size:19px;letter-spacing:-.5px;background:linear-gradient(135deg,var(--p1),var(--c1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hmd{display:flex;align-items:center;gap:7px;}
+.mpill{padding:4px 11px;background:var(--bg3);border:1px solid var(--b2);border-radius:20px;font-size:10.5px;color:var(--t2);cursor:pointer;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:all .2s;}
+.mpill:hover{border-color:var(--p1);color:var(--p2);}
+.badge{display:flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.22);border-radius:20px;font-size:10px;color:var(--g2);font-weight:600;}
+.bdot{width:5px;height:5px;border-radius:50%;background:var(--g2);animation:bp 1.5s ease-in-out infinite;}
+@keyframes bp{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hbts{display:flex;gap:5px;}
+.hb{width:32px;height:32px;background:var(--bg3);border:1px solid var(--b1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t3);font-size:13px;transition:all .2s;}
+.hb:hover{border-color:var(--p1);color:var(--p1);}
+
+/* ══ TABS ══ */
+.tabs{display:flex;border-bottom:1px solid var(--b1);background:rgba(5,8,16,.9);flex-shrink:0;position:relative;z-index:5;padding:0 20px;}
+.tab{padding:11px 20px;font-size:13px;font-weight:600;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.tab:hover{color:var(--t2);}
+.tab.active{color:var(--p2);border-bottom-color:var(--p1);}
+
+/* ══ LAYOUT ══ */
+.app{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+.sb{width:225px;background:rgba(9,13,28,.9);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;}
+.sbh{padding:13px 11px;border-bottom:1px solid var(--b1);}
+.nb{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(6,182,212,.07));border:1px solid rgba(139,92,246,.22);border-radius:10px;cursor:pointer;font-family:var(--fn);font-size:12.5px;font-weight:600;color:var(--p2);transition:all .2s;}
+.nb:hover{border-color:var(--p1);}
+.sbs{padding:10px 14px 5px;font-size:9.5px;color:var(--t3);letter-spacing:1.8px;text-transform:uppercase;font-weight:600;}
+.sbl{flex:1;overflow-y:auto;padding:4px 8px;}
+.sbl::-webkit-scrollbar{width:3px;}
+.sbl::-webkit-scrollbar-thumb{background:var(--b1);border-radius:3px;}
+.ci{padding:9px 10px;border-radius:9px;cursor:pointer;font-size:11.5px;color:var(--t2);border:1px solid transparent;transition:all .15s;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ci:hover{background:var(--bg3);color:var(--t1);border-color:var(--b1);}
+.ci.active{background:rgba(139,92,246,.07);color:var(--p2);border-color:rgba(139,92,246,.2);}
+.sbf{padding:10px 12px;border-top:1px solid var(--b1);}
+.kbtn{width:100%;display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:9px;cursor:pointer;font-family:var(--fn);font-size:11px;color:var(--t2);transition:all .2s;}
+.kbtn:hover{border-color:var(--p1);color:var(--p2);}
+
+/* ══ CHAT PANEL ══ */
+.panel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.msgs{flex:1;overflow-y:auto;padding:28px 24px;display:flex;flex-direction:column;gap:22px;scroll-behavior:smooth;}
+.msgs::-webkit-scrollbar{width:4px;}
+.msgs::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px;}
+
+/* WELCOME */
+.wlc{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;gap:16px;animation:win .55s cubic-bezier(.16,1,.3,1);padding:20px;}
+@keyframes win{from{opacity:0;transform:translateY(22px);}to{opacity:1;transform:none;}}
+.wlo{width:82px;height:82px;background:linear-gradient(135deg,var(--p1),var(--c1));border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 0 55px rgba(139,92,246,.45),0 0 110px rgba(6,182,212,.2);animation:wfl 4s ease-in-out infinite;margin-bottom:4px;}
+@keyframes wfl{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+.wname{font-size:38px;font-weight:900;letter-spacing:-1.5px;background:linear-gradient(135deg,var(--p1),var(--c1),var(--p2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.wsub{font-size:13px;color:var(--t2);text-align:center;max-width:440px;line-height:1.8;}
+.wmd{display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg3);border:1px solid var(--b2);border-radius:20px;font-size:11px;color:var(--t2);}
+.wmd span{color:var(--p2);font-weight:600;}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;width:100%;max-width:680px;}
+.sc{background:var(--bg2);border:1px solid var(--b1);border-radius:13px;padding:15px;cursor:pointer;transition:all .25s;text-align:left;}
+.sc:hover{border-color:var(--p1);transform:translateY(-3px);box-shadow:0 10px 28px rgba(139,92,246,.12);}
+.sci{font-size:22px;margin-bottom:7px;}
+.sct{font-size:12px;font-weight:700;color:var(--t1);margin-bottom:3px;}
+.scd{font-size:10px;color:var(--t3);line-height:1.5;}
+
+/* MESSAGES */
+.msg{display:flex;gap:12px;animation:mani .3s ease;max-width:880px;width:100%;align-self:center;}
+.msg.user{flex-direction:row-reverse;align-self:flex-end;max-width:680px;}
+@keyframes mani{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+.av{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px;}
+.av.ai{background:linear-gradient(135deg,var(--p1),var(--c1));box-shadow:0 0 14px rgba(139,92,246,.4);}
+.av.user{background:var(--bg4);border:1px solid var(--b2);}
+.mb{flex:1;min-width:0;}
+.mm{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:10.5px;color:var(--t3);}
+.msg.user .mm{justify-content:flex-end;}
+.mn{color:var(--t2);font-weight:700;font-size:11px;}
+.bbl{padding:14px 17px;border-radius:15px;font-size:14px;line-height:1.8;border:1px solid var(--b1);}
+.bbl.user{background:linear-gradient(135deg,rgba(139,92,246,.13),rgba(6,182,212,.07));border-color:rgba(139,92,246,.25);}
+.bbl.ai{background:var(--bg2);border-color:var(--b1);}
+.bbl.ai h1,.bbl.ai h2,.bbl.ai h3{color:var(--p2);margin:13px 0 6px;line-height:1.3;}
+.bbl.ai h1{font-size:18px;font-weight:800;}
+.bbl.ai h2{font-size:16px;font-weight:700;}
+.bbl.ai h3{font-size:14px;font-weight:700;}
+.bbl.ai p{margin-bottom:10px;}
+.bbl.ai p:last-child{margin-bottom:0;}
+.bbl.ai strong{color:var(--p2);font-weight:700;}
+.bbl.ai em{color:var(--t2);font-style:italic;}
+.bbl.ai ul,.bbl.ai ol{padding-left:20px;margin:8px 0;}
+.bbl.ai li{margin-bottom:5px;}
+.bbl.ai a{color:var(--c1);}
+.bbl.ai blockquote{border-left:3px solid var(--p1);padding-left:13px;color:var(--t2);margin:10px 0;font-style:italic;}
+.bbl.ai hr{border:none;border-top:1px solid var(--b1);margin:13px 0;}
+.bbl.ai pre{background:#030508;border:1px solid var(--b2);border-radius:11px;padding:14px;overflow-x:auto;margin:12px 0;}
+.chdrcod{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;padding-bottom:9px;border-bottom:1px solid var(--b1);}
+.clang{font-size:10px;color:var(--p2);font-weight:600;letter-spacing:1px;text-transform:uppercase;font-family:var(--mo);}
+.cpbtn{padding:3px 10px;background:var(--bg3);border:1px solid var(--b2);border-radius:6px;font-size:10px;color:var(--t3);cursor:pointer;}
+.cpbtn:hover{color:var(--t1);}
+.bbl.ai pre code{font-family:var(--mo);font-size:12.5px;color:#e8eaf6;background:none;padding:0;white-space:pre;line-height:1.65;}
+.bbl.ai code{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);border-radius:5px;padding:2px 7px;color:var(--p2);font-family:var(--mo);font-size:12.5px;}
+.bbl.ai pre code{background:none;border:none;padding:0;color:#e8eaf6;}
+
+/* Thinking */
+.thkbar{display:flex;align-items:center;gap:9px;padding:9px 13px;margin-bottom:9px;background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.13);border-radius:10px;font-size:12px;color:var(--p2);}
+.tspn{width:13px;height:13px;border:2px solid rgba(139,92,246,.2);border-top-color:var(--p1);border-radius:50%;animation:spn .7s linear infinite;flex-shrink:0;}
+@keyframes spn{to{transform:rotate(360deg);}}
+.tdts{display:flex;align-items:center;gap:5px;padding:15px 17px;background:var(--bg2);border:1px solid var(--b1);border-radius:15px;width:fit-content;}
+.td{width:7px;height:7px;border-radius:50%;animation:tdb 1.3s ease-in-out infinite;}
+.td:nth-child(1){background:var(--p1);}
+.td:nth-child(2){background:var(--c1);animation-delay:.18s;}
+.td:nth-child(3){background:var(--p2);animation-delay:.36s;}
+@keyframes tdb{0%,80%,100%{transform:translateY(0);opacity:.3;}40%{transform:translateY(-8px);opacity:1;}}
+.mac{display:flex;gap:5px;margin-top:8px;opacity:0;transition:opacity .2s;}
+.msg:hover .mac{opacity:1;}
+.ma{padding:4px 10px;background:var(--bg3);border:1px solid var(--b1);border-radius:7px;font-size:10.5px;color:var(--t3);cursor:pointer;font-family:var(--fn);transition:all .15s;}
+.ma:hover{color:var(--t1);border-color:var(--b2);}
+.errbbl{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.22);border-radius:13px;padding:14px 16px;font-size:13.5px;color:var(--re);line-height:1.7;}
+
+/* ══ IMAGE PANEL ══ */
+.imgpanel{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.imgmain{flex:1;overflow-y:auto;padding:24px;}
+.imgmain::-webkit-scrollbar{width:4px;}
+.imgmain::-webkit-scrollbar-thumb{background:var(--b2);border-radius:4px;}
+
+/* Image generator */
+.gen-box{max-width:800px;margin:0 auto;}
+.gen-title{font-size:22px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,var(--p1),var(--c1));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.gen-sub{font-size:13px;color:var(--t2);margin-bottom:24px;line-height:1.7;}
+
+.prompt-area{background:var(--bg2);border:1px solid var(--b2);border-radius:16px;padding:20px;margin-bottom:16px;}
+.prompt-area textarea{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:11px;padding:14px;font-family:var(--fn);font-size:14px;color:var(--t1);outline:none;resize:none;height:90px;line-height:1.65;transition:border-color .2s;}
+.prompt-area textarea:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(139,92,246,.08);}
+.prompt-area textarea::placeholder{color:var(--t3);}
+
+.img-opts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;}
+.opt-group label{display:block;font-size:10.5px;font-weight:700;color:var(--t2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:6px;}
+.opt-group select,.opt-group input{width:100%;background:var(--bg3);border:1px solid var(--b2);border-radius:9px;padding:10px 12px;font-family:var(--fn);font-size:12.5px;color:var(--t1);outline:none;cursor:pointer;appearance:none;transition:border-color .2s;}
+.opt-group select:focus,.opt-group input:focus{border-color:var(--p1);}
+.opt-group input[type=number]{-moz-appearance:textfield;}
+
+.gen-btn{width:100%;padding:15px;border:none;border-radius:12px;background:linear-gradient(135deg,var(--p1),var(--c1));font-family:var(--fn);font-weight:700;font-size:15px;color:#fff;cursor:pointer;transition:all .25s;box-shadow:0 0 25px rgba(139,92,246,.3);margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.gen-btn:hover{transform:translateY(-2px);box-shadow:0 0 40px rgba(139,92,246,.5);}
+.gen-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+/* Image result */
+.img-result{background:var(--bg2);border:1px solid var(--b1);border-radius:16px;padding:20px;margin-bottom:16px;display:none;}
+.img-result.show{display:block;}
+.result-img{width:100%;border-radius:12px;display:block;border:1px solid var(--b2);background:var(--bg3);}
+.img-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:16px;background:var(--bg3);border-radius:12px;border:1px solid var(--b2);}
+.img-spinner{width:40px;height:40px;border:3px solid rgba(139,92,246,.2);border-top-color:var(--p1);border-radius:50%;animation:spn .8s linear infinite;}
+.img-loading-txt{font-size:13px;color:var(--t2);text-align:center;line-height:1.7;}
+.img-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.img-act{padding:8px 16px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--fn);display:flex;align-items:center;gap:5px;}
+.img-act.dl{background:linear-gradient(135deg,var(--p1),var(--c1));border:none;color:#fff;box-shadow:0 0 16px rgba(139,92,246,.3);}
+.img-act.dl:hover{box-shadow:0 0 26px rgba(139,92,246,.5);}
+.img-act.regen{background:var(--bg3);border:1px solid var(--b2);color:var(--t2);}
+.img-act.regen:hover{border-color:var(--p1);color:var(--p2);}
+.img-prompt-show{font-size:11.5px;color:var(--t3);margin-top:10px;font-style:italic;line-height:1.6;}
+
+/* Gallery */
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:20px;}
+.gal-item{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--b1);cursor:pointer;transition:all .2s;aspect-ratio:1;}
+.gal-item:hover{transform:scale(1.02);border-color:var(--p1);box-shadow:0 8px 20px rgba(139,92,246,.2);}
+.gal-item img{width:100%;height:100%;object-fit:cover;display:block;}
+.gal-overlay{position:absolute;inset:0;background:rgba(5,8,16,.7);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+.gal-item:hover .gal-overlay{opacity:1;}
+.gal-view{padding:6px 12px;background:var(--p1);border:none;border-radius:7px;color:#fff;font-size:11px;cursor:pointer;font-family:var(--fn);font-weight:600;}
+
+.style-chips{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px;}
+.style-chip{padding:5px 12px;border-radius:7px;font-size:11.5px;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:transparent;font-family:var(--fn);transition:all .15s;}
+.style-chip:hover{border-color:var(--p1);color:var(--p2);}
+.style-chip.active{border-color:var(--p1);color:var(--p2);background:rgba(139,92,246,.1);}
+
+/* ══ CHAT INPUT ══ */
+.inpz{padding:12px 18px 16px;border-top:1px solid var(--b1);background:rgba(5,8,16,.95);backdrop-filter:blur(20px);flex-shrink:0;}
+.ish{background:var(--bg2);border:1px solid var(--b2);border-radius:17px;transition:all .25s;max-width:880px;margin:0 auto;overflow:hidden;}
+.ish:focus-within{border-color:rgba(139,92,246,.45);box-shadow:0 0 0 3px rgba(139,92,246,.06);}
+.itp{display:flex;align-items:flex-end;padding:12px 12px 12px 17px;gap:10px;}
+.chat-ta{flex:1;background:transparent;border:none;outline:none;resize:none;font-family:var(--fn);font-size:14px;color:var(--t1);min-height:22px;max-height:160px;line-height:1.65;padding:0;}
+.chat-ta::placeholder{color:var(--t3);}
+.snd{width:40px;height:40px;background:linear-gradient(135deg,var(--p1),var(--c1));border:none;border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;box-shadow:0 0 18px rgba(139,92,246,.35);}
+.snd:hover{transform:scale(1.07);box-shadow:0 0 28px rgba(139,92,246,.55);}
+.snd:disabled{opacity:.3;cursor:not-allowed;transform:none;box-shadow:none;}
+.ibt{display:flex;align-items:center;justify-content:space-between;padding:6px 13px 10px;border-top:1px solid var(--b1);}
+.chips{display:flex;gap:5px;flex-wrap:wrap;}
+.chip{padding:4px 10px;border-radius:7px;font-size:11px;cursor:pointer;border:1px solid var(--b1);color:var(--t3);background:transparent;font-family:var(--fn);font-weight:500;transition:all .15s;white-space:nowrap;}
+.chip:hover{border-color:var(--p1);color:var(--p2);}
+.cc{font-size:10.5px;color:var(--t3);}
+.ft{text-align:center;font-size:10.5px;color:var(--t3);margin-top:8px;max-width:880px;margin-left:auto;margin-right:auto;}
+
+@media(max-width:768px){.sb{display:none;}.sg{grid-template-columns:1fr 1fr;}.hmd{display:none;}.img-opts{grid-template-columns:1fr;}}
+@media(max-width:480px){.sg{grid-template-columns:1fr;}.msgs{padding:14px;}.img-opts{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="bgrid"></div>
+<div class="gl gl1"></div><div class="gl gl2"></div><div class="gl gl3"></div>
+
+<!-- ══ SETUP ══ -->
+<div id="setup">
+  <div class="card">
+    <div class="logo-area">
+      <div class="logo-ring">✨</div>
+      <div class="logo-name">T-GPT</div>
+      <div class="logo-tag">Chat karo + Images banao — FREE AI Assistant</div>
+      <div class="feat-row">
+        <div class="feat chat">💬 AI Chat</div>
+        <div class="feat img">🎨 Image Gen</div>
+        <div class="feat free">🆓 Free</div>
+      </div>
+    </div>
+    <div id="serr" class="se"></div>
+    <div class="lb">Groq API Key (Chat ke liye)</div>
+    <div class="iwr">
+      <input type="password" id="gkey" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off"/>
+      <button class="eyb" onclick="toggleEye()">👁</button>
+    </div>
+    <div class="lb">AI Chat Model</div>
+    <select class="msl" id="msel">
+      <option value="llama-3.3-70b-versatile">⚡ Llama 3.3 70B — Best Quality</option>
+      <option value="llama-3.1-8b-instant">🚀 Llama 3.1 8B — Ultra Fast</option>
+      <option value="llama3-70b-8192">🦙 Llama 3 70B</option>
+      <option value="mixtral-8x7b-32768">🧠 Mixtral 8x7B</option>
+      <option value="gemma2-9b-it">💎 Gemma 2 9B</option>
+    </select>
+    <div class="note-box">
+      🎨 <strong style="color:var(--p2)">Image Generation:</strong> Pollinations.AI use hoga — bilkul FREE, koi key nahi chahiye!<br>
+      💬 <strong style="color:var(--c2)">Chat:</strong> Groq API key chahiye — <a href="https://console.groq.com" target="_blank">console.groq.com</a> se FREE mein lo
+    </div>
+    <button class="lbtn" onclick="launch()">✨ T-GPT Launch Karo!</button>
+  </div>
+</div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="hlog"><div class="hic">✨</div><span class="hn">T-GPT</span></div>
+  <div class="hmd">
+    <div class="mpill" id="mpill">llama-3.3-70b-versatile</div>
+    <div class="badge"><span class="bdot"></span>Free AI</div>
+  </div>
+  <div class="hbts">
+    <button class="hb" onclick="openSetup()" title="Settings">⚙️</button>
+    <button class="hb" onclick="newChat()" title="New Chat">✦</button>
+    <button class="hb" onclick="newChat()" title="Clear">🗑</button>
+  </div>
+</header>
+
+<!-- ══ TABS ══ -->
+<div class="tabs">
+  <div class="tab active" id="tab-chat" onclick="switchTab('chat')">💬 Chat</div>
+  <div class="tab" id="tab-image" onclick="switchTab('image')">🎨 Image Generator</div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sb">
+    <div class="sbh"><button class="nb" onclick="newChat()">＋ &nbsp;Naya Chat</button></div>
+    <div class="sbs">History</div>
+    <div class="sbl" id="clist"><div class="ci active" id="clbl">💬 Current Session</div></div>
+    <div class="sbf">
+      <div style="font-size:10.5px;color:var(--t3);padding:4px 8px 8px;line-height:1.7;">✅ Chat: Groq Free<br>🎨 Images: Pollinations Free</div>
+      <button class="kbtn" onclick="openSetup()">🔑 Change Key / Model</button>
+    </div>
+  </aside>
+
+  <!-- Chat Panel -->
+  <div class="panel" id="chatPanel">
+    <div class="msgs" id="msgs"></div>
+    <div class="inpz">
+      <div class="ish">
+        <div class="itp">
+          <textarea class="chat-ta" id="ta" rows="1" placeholder="T-GPT se kuch bhi poocho... ✨"
+            onkeydown="hk(event)" oninput="rsz(this);upcc(this)"></textarea>
+          <button class="snd" id="sndBtn" onclick="sendChat()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+        <div class="ibt">
+          <div class="chips">
+            <button class="chip" onclick="pre('Explain karo: ')">📋 Explain</button>
+            <button class="chip" onclick="pre('Code likho: ')">💻 Code</button>
+            <button class="chip" onclick="pre('Translate to English: ')">🌐 Translate</button>
+            <button class="chip" onclick="pre('Summary do: ')">📝 Summary</button>
+            <button class="chip" onclick="switchTab('image')">🎨 Image Banao</button>
+          </div>
+          <span class="cc" id="ccnt">0/6000</span>
+        </div>
+      </div>
+      <div class="ft">T-GPT Chat • Groq API Free • Ultra Fast</div>
+    </div>
+  </div>
+
+  <!-- Image Panel -->
+  <div class="imgpanel" id="imgPanel" style="display:none;">
+    <div class="imgmain">
+      <div class="gen-box">
+        <div class="gen-title">🎨 AI Image Generator</div>
+        <div class="gen-sub">Koi bhi image banao FREE mein — Pollinations.AI se powered<br>No sign-up, no API key, no limits!</div>
+
+        <!-- Style chips -->
+        <div style="font-size:10.5px;font-weight:700;color:var(--t2);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;">Quick Styles</div>
+        <div class="style-chips">
+          <div class="style-chip active" onclick="setStyle(this,'')">🎭 Default</div>
+          <div class="style-chip" onclick="setStyle(this,'photorealistic, 8k, ultra detailed')">📷 Photorealistic</div>
+          <div class="style-chip" onclick="setStyle(this,'anime style, vibrant colors, manga')">🌸 Anime</div>
+          <div class="style-chip" onclick="setStyle(this,'digital art, concept art, artstation')">🖌️ Digital Art</div>
+          <div class="style-chip" onclick="setStyle(this,'oil painting, classic, impressionist')">🎨 Oil Paint</div>
+          <div class="style-chip" onclick="setStyle(this,'3d render, octane render, cinema 4d')">🔮 3D Render</div>
+          <div class="style-chip" onclick="setStyle(this,'pencil sketch, hand drawn, black and white')">✏️ Sketch</div>
+          <div class="style-chip" onclick="setStyle(this,'cyberpunk, neon lights, futuristic city')">🌆 Cyberpunk</div>
+          <div class="style-chip" onclick="setStyle(this,'fantasy art, magical, epic, dramatic lighting')">⚔️ Fantasy</div>
+          <div class="style-chip" onclick="setStyle(this,'watercolor, soft colors, dreamy')">💧 Watercolor</div>
+        </div>
+
+        <div class="prompt-area">
+          <textarea id="imgPrompt" placeholder="Describe karo kya image banana chahte ho... 
+
+Example: A majestic lion standing on a mountain at sunset, dramatic lighting, ultra realistic
+Ya Hindi mein: Ek khubsurat ladki phoolon ke baagh mein, anime style"></textarea>
+          <div class="img-opts">
+            <div class="opt-group">
+              <label>Image Size</label>
+              <select id="imgSize">
+                <option value="1024/1024">1024×1024 (Square)</option>
+                <option value="1280/720">1280×720 (Landscape)</option>
+                <option value="720/1280">720×1280 (Portrait)</option>
+                <option value="1920/1080">1920×1080 (HD)</option>
+                <option value="512/512">512×512 (Fast)</option>
+              </select>
+            </div>
+            <div class="opt-group">
+              <label>AI Model</label>
+              <select id="imgModel">
+                <option value="flux">⚡ Flux (Best)</option>
+                <option value="flux-realism">📷 Flux Realism</option>
+                <option value="flux-anime">🌸 Flux Anime</option>
+                <option value="flux-3d">🔮 Flux 3D</option>
+                <option value="turbo">🚀 Turbo (Fast)</option>
+              </select>
+            </div>
+            <div class="opt-group">
+              <label>Seed (optional)</label>
+              <input type="number" id="imgSeed" placeholder="Random" min="1" max="9999999"/>
+            </div>
+          </div>
+        </div>
+
+        <button class="gen-btn" id="genBtn" onclick="generateImage()">
+          <span>🎨</span> Image Generate Karo — FREE!
+        </button>
+
+        <!-- Result -->
+        <div class="img-result" id="imgResult">
+          <div id="imgDisplay"></div>
+          <div class="img-actions" id="imgActions"></div>
+          <div class="img-prompt-show" id="imgPromptShow"></div>
+        </div>
+
+        <!-- Gallery -->
+        <div id="gallerySection" style="display:none;">
+          <div style="font-size:13px;font-weight:700;color:var(--t1);margin:24px 0 12px;">🖼️ Generated Images</div>
+          <div class="gallery" id="gallery"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ STATE ══
+let KEY='', MDL='llama-3.3-70b-versatile';
+let conv=[], busy=false, firstMsg=true, lastQ='';
+let styleExtra='', currentTab='chat';
+let galleryImages=[];
+
+// ══ SETUP ══
+function toggleEye(){const i=document.getElementById('gkey');i.type=i.type==='password'?'text':'password';}
+function openSetup(){document.getElementById('setup').style.display='flex';}
+function showErr(m){const e=document.getElementById('serr');e.innerHTML=m;e.style.display='block';}
+
+function launch(){
+  const k=document.getElementById('gkey').value.trim();
+  if(!k){showErr('❗ Groq API key daalo! (Chat ke liye)');return;}
+  if(!k.startsWith('gsk_')){showErr('❗ Groq keys "gsk_" se start hoti hain.<br><a href="https://console.groq.com" target="_blank" style="color:var(--p2)">console.groq.com</a> se FREE key lo.');return;}
+  KEY=k; MDL=document.getElementById('msel').value;
+  document.getElementById('serr').style.display='none';
+  document.getElementById('setup').style.display='none';
+  document.getElementById('mpill').textContent=MDL;
+  showWelcome();
+}
+
+// ══ TABS ══
+function switchTab(tab){
+  currentTab=tab;
+  document.getElementById('tab-chat').classList.toggle('active',tab==='chat');
+  document.getElementById('tab-image').classList.toggle('active',tab==='image');
+  document.getElementById('chatPanel').style.display=tab==='chat'?'flex':'none';
+  document.getElementById('imgPanel').style.display=tab==='image'?'flex':'none';
+}
+
+// ══ IMAGE STYLES ══
+function setStyle(el,style){
+  document.querySelectorAll('.style-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  styleExtra=style;
+}
+
+// ══ IMAGE GENERATION ══
+async function generateImage(){
+  const prompt=document.getElementById('imgPrompt').value.trim();
+  if(!prompt){alert('Image ka description daalo!');return;}
+
+  const btn=document.getElementById('genBtn');
+  const result=document.getElementById('imgResult');
+  const display=document.getElementById('imgDisplay');
+  const actions=document.getElementById('imgActions');
+  const promptShow=document.getElementById('imgPromptShow');
+
+  btn.disabled=true;
+  btn.innerHTML='<span class="tspn" style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;"></span> Generating...';
+
+  result.classList.add('show');
+  display.innerHTML=`<div class="img-loading">
+    <div class="img-spinner"></div>
+    <div class="img-loading-txt">✨ AI image bana raha hai...<br>Thoda wait karo (10-20 seconds)</div>
+  </div>`;
+  actions.innerHTML='';
+
+  const sizeVal=document.getElementById('imgSize').value;
+  const [w,h]=sizeVal.split('/');
+  const model=document.getElementById('imgModel').value;
+  const seedVal=document.getElementById('imgSeed').value;
+  const seed=seedVal?`&seed=${seedVal}`:`&seed=${Math.floor(Math.random()*9999999)}`;
+
+  const fullPrompt=styleExtra?`${prompt}, ${styleExtra}`:prompt;
+  const encodedPrompt=encodeURIComponent(fullPrompt);
+  const imgUrl=`https://image.pollinations.ai/prompt/${encodedPrompt}?width=${w}&height=${h}&model=${model}${seed}&nologo=true&enhance=true`;
+
+  const img=new Image();
+  img.onload=()=>{
+    img.className='result-img';
+    display.innerHTML='';
+    display.appendChild(img);
+
+    actions.innerHTML=`
+      <button class="img-act dl" onclick="downloadImg('${imgUrl}','tgpt-image')">⬇️ Download</button>
+      <button class="img-act regen" onclick="generateImage()">🔄 Regenerate</button>
+      <button class="img-act regen" onclick="shareImg('${imgUrl}')">🔗 Share Link</button>`;
+
+    promptShow.textContent=`Prompt: "${fullPrompt}"`;
+
+    // Add to gallery
+    galleryImages.unshift({url:imgUrl,prompt:fullPrompt});
+    updateGallery();
+
+    btn.disabled=false;
+    btn.innerHTML='<span>🎨</span> Image Generate Karo — FREE!';
+  };
+  img.onerror=()=>{
+    display.innerHTML=`<div class="img-loading"><div style="font-size:40px">😞</div><div class="img-loading-txt" style="color:var(--re)">Image nahi bani.<br>Dobara try karo ya prompt change karo.</div></div>`;
+    btn.disabled=false;
+    btn.innerHTML='<span>🎨</span> Image Generate Karo — FREE!';
+  };
+  img.src=imgUrl;
+}
+
+function updateGallery(){
+  const sec=document.getElementById('gallerySection');
+  const gal=document.getElementById('gallery');
+  if(galleryImages.length>0){
+    sec.style.display='block';
+    gal.innerHTML=galleryImages.slice(0,12).map((item,i)=>
+      `<div class="gal-item">
+        <img src="${item.url}" alt="Generated image ${i+1}" loading="lazy">
+        <div class="gal-overlay">
+          <button class="gal-view" onclick="downloadImg('${item.url}','tgpt-${i+1}')">⬇️ Save</button>
+        </div>
+      </div>`
+    ).join('');
+  }
+}
+
+function downloadImg(url,name){
+  const a=document.createElement('a');
+  a.href=url;a.download=name+'.jpg';a.target='_blank';
+  a.click();
+}
+
+function shareImg(url){
+  navigator.clipboard.writeText(url).then(()=>{
+    alert('Image link copied to clipboard!');
+  });
+}
+
+// ══ WELCOME ══
+function showWelcome(){
+  document.getElementById('msgs').innerHTML=`
+  <div class="wlc" id="wlc">
+    <div class="wlo">✨</div>
+    <div class="wname">T-GPT</div>
+    <div class="wsub">Chat karo aur <strong style="color:var(--c2)">images banao</strong> — bilkul FREE!<br>Hindi ya English mein poocho 😊</div>
+    <div class="wmd">Model: <span>${MDL}</span>&nbsp;•&nbsp;<span style="color:var(--g2)">⚡ Groq + Pollinations Free</span></div>
+    <div class="sg">
+      <div class="sc" onclick="useQ('Python mein ek web scraper banao with BeautifulSoup')"><div class="sci">💻</div><div class="sct">Code likhao</div><div class="scd">Python, JS, HTML, CSS</div></div>
+      <div class="sc" onclick="switchTab('image')"><div class="sci">🎨</div><div class="sct">Image Banao</div><div class="scd">Free AI image generation</div></div>
+      <div class="sc" onclick="useQ('Ek motivational speech likho Hindi mein — 200 words')"><div class="sci">✍️</div><div class="sct">Writing</div><div class="scd">Story, speech, essay</div></div>
+      <div class="sc" onclick="useQ('Machine learning kya hai? Bilkul simple mein batao')"><div class="sci">🧠</div><div class="sct">Samjhao</div><div class="scd">Any topic easy mein</div></div>
+      <div class="sc" onclick="useQ('Mujhe ek full stack web developer ka roadmap do 2025 ke liye')"><div class="sci">🗺️</div><div class="sct">Roadmap</div><div class="scd">Career & learning paths</div></div>
+      <div class="sc" onclick="useQ('Translate to Hindi: The future belongs to those who believe in the beauty of their dreams')"><div class="sci">🌐</div><div class="sct">Translate</div><div class="scd">Any language</div></div>
+    </div>
+  </div>`;
+}
+
+// ══ CHAT UTILS ══
+function rsz(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,160)+'px';}
+function upcc(el){document.getElementById('ccnt').textContent=`${el.value.length}/6000`;}
+function hk(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
+function scrollEnd(){const m=document.getElementById('msgs');m.scrollTop=m.scrollHeight;}
+function ts(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function pre(t){const ta=document.getElementById('ta');ta.value=t;ta.focus();rsz(ta);}
+function useQ(q){document.getElementById('ta').value=q;sendChat();}
+function rmWlc(){const w=document.getElementById('wlc');if(w)w.remove();}
+
+function newChat(){
+  conv=[];busy=false;firstMsg=true;
+  document.getElementById('sndBtn').disabled=false;
+  showWelcome();
+  const ta=document.getElementById('ta');ta.value='';ta.style.height='auto';upcc(ta);
+  switchTab('chat');
+}
+
+// ══ MARKDOWN ══
+function renderMd(raw){
+  let t=raw;
+  t=t.replace(/```(\w*)\n?([\s\S]*?)```/g,(_,lang,code)=>{
+    const id='c'+Math.random().toString(36).slice(2,9);
+    return `<pre><div class="chdrcod"><span class="clang">${lang||'code'}</span><button class="cpbtn" onclick="cpCode('${id}')">Copy</button></div><code id="${id}">${esc(code.trim())}</code></pre>`;
+  });
+  t=t.replace(/`([^`\n]+)`/g,'<code>$1</code>');
+  t=t.replace(/^### (.+)/gm,'<h3>$1</h3>');
+  t=t.replace(/^## (.+)/gm,'<h2>$1</h2>');
+  t=t.replace(/^# (.+)/gm,'<h1>$1</h1>');
+  t=t.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');
+  t=t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/\*(.+?)\*/g,'<em>$1</em>');
+  t=t.replace(/^> (.+)/gm,'<blockquote>$1</blockquote>');
+  t=t.replace(/^---+$/gm,'<hr>');
+  t=t.replace(/\[([^\]]+)\]\((https?[^\)]+)\)/g,'<a href="$2" target="_blank" style="color:var(--c1)">$1</a>');
+  t=t.replace(/^\d+\.\s+(.+)/gm,'<li style="list-style:decimal inside">$1</li>');
+  t=t.replace(/^[-*•]\s+(.+)/gm,'<li>$1</li>');
+  t=t.replace(/(<li[\s\S]*?<\/li>\n?)+/g,m=>`<ul>${m}</ul>`);
+  t=t.split(/\n\n+/).map(p=>{
+    p=p.trim();if(!p)return'';
+    if(/^<(h[123]|ul|ol|pre|blockquote|hr)/.test(p))return p;
+    return`<p>${p.replace(/\n/g,'<br>')}</p>`;
+  }).join('');
+  return t||'<p>(empty)</p>';
+}
+
+function cpCode(id){
+  const el=document.getElementById(id);
+  if(!el)return;
+  navigator.clipboard.writeText(el.innerText).then(()=>{
+    const b=el.closest('pre').querySelector('.cpbtn');
+    if(b){b.textContent='✓';setTimeout(()=>b.textContent='Copy',2000);}
+  });
+}
+
+// ══ MESSAGES ══
+function addUser(text){
+  rmWlc();
+  const m=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg user';
+  d.innerHTML=`<div class="av user">😊</div>
+    <div class="mb"><div class="mm"><span class="mn">Aap</span><span>${ts()}</span></div>
+    <div class="bbl user">${esc(text).replace(/\n/g,'<br>')}</div></div>`;
+  m.appendChild(d);scrollEnd();
+}
+
+function addThinking(){
+  rmWlc();
+  const m=document.getElementById('msgs');
+  const d=document.createElement('div');d.className='msg';d.id='thk';
+  d.innerHTML=`<div class="av ai">✨</div>
+    <div class="mb" id="thkb">
+      <div class="mm"><span class="mn">T-GPT</span><span>${ts()}</span></div>
+      <div class="thkbar"><div class="tspn"></div>Soch raha hoon... ⚡</div>
+      <div class="tdts"><div class="td"></div><div class="td"></div><div class="td"></div></div>
+    </div>`;
+  m.appendChild(d);scrollEnd();return d;
+}
+
+function finishThinking(el,text,isErr){
+  const body=el.querySelector('.mb');
+  const html=isErr
+    ?`<div class="errbbl">${text}</div>`
+    :`<div class="bbl ai">${renderMd(text)}</div>
+      <div class="mac">
+        <button class="ma" onclick="cpMsg(this,${JSON.stringify(text)})">📋 Copy</button>
+        <button class="ma" onclick="retry()">↺ Retry</button>
+        <button class="ma" onclick="speak(${JSON.stringify(text.slice(0,400))})">🔊 Suno</button>
+      </div>`;
+  body.innerHTML=`<div class="mm"><span class="mn">T-GPT</span><span>${ts()}</span></div>${html}`;
+  scrollEnd();
+}
+
+function cpMsg(btn,text){
+  navigator.clipboard.writeText(text).then(()=>{btn.textContent='✓';setTimeout(()=>btn.textContent='📋 Copy',2000);});
+}
+function speak(text){
+  if(!('speechSynthesis' in window))return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text.replace(/<[^>]*>/g,''));
+  u.lang='hi-IN';u.rate=0.92;window.speechSynthesis.speak(u);
+}
+function retry(){
+  if(!lastQ||busy)return;
+  if(conv.length>=2){conv.pop();conv.pop();}
+  document.getElementById('ta').value=lastQ;
+  sendChat();
+}
+
+// ══ SEND CHAT ══
+async function sendChat(){
+  if(busy)return;
+  if(!KEY){openSetup();return;}
+  const ta=document.getElementById('ta');
+  const text=ta.value.trim();
+  if(!text||text.length>6000)return;
+  lastQ=text;busy=true;
+  document.getElementById('sndBtn').disabled=true;
+  ta.value='';ta.style.height='auto';upcc(ta);
+  if(firstMsg){firstMsg=false;const lbl=text.length>36?text.slice(0,36)+'…':text;const c=document.getElementById('clbl');if(c)c.innerHTML=`💬 ${lbl}`;}
+  addUser(text);
+  const thk=addThinking();
+  conv.push({role:'user',content:text});
+
+  // Auto-detect image request and switch to image tab
+  const imgKeywords=['image banao','picture banao','photo banao','draw','generate image','create image','make image','ek image','image chahiye'];
+  if(imgKeywords.some(k=>text.toLowerCase().includes(k))){
+    const prompt=text.replace(/image banao|picture banao|photo banao|ek image|image chahiye/gi,'').trim();
+    finishThinking(thk,`🎨 Image banane ke liye **Image Generator** tab mein jaao!\n\nMaine tumhara prompt ready kar diya hai: **"${prompt}"**\n\nClick karo: 👉 [Image Generator tab]`, false);
+    document.getElementById('imgPrompt').value=prompt||text;
+    conv.push({role:'assistant',content:'Image tab pe redirect kiya.'});
+    busy=false;document.getElementById('sndBtn').disabled=false;ta.focus();
+    setTimeout(()=>switchTab('image'),1500);
+    return;
+  }
+
+  const sys=`You are T-GPT, a friendly AI assistant powered by Groq (${MDL}).
+- Respond in whatever language the user uses (Hindi, English, or Hinglish)
+- Be helpful, accurate, and friendly
+- Use markdown: **bold**, headers (##), bullet lists, code blocks with language
+- For code use proper \`\`\`language blocks
+- Today: ${new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}`;
+
+  try{
+    const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+KEY},
+      body:JSON.stringify({model:MDL,messages:[{role:'system',content:sys},...conv],max_tokens:2048,temperature:0.72,stream:false})
+    });
+    let data;
+    try{data=await res.json();}catch{throw new Error('Response parse error');}
+    if(!res.ok){
+      if(res.status===401)throw new Error('❌ <strong>API Key galat hai!</strong> ⚙️ Settings mein jaao aur sahi key daalo.');
+      if(res.status===429)throw new Error('⏳ <strong>Rate limit!</strong> 1-2 min wait karo.');
+      throw new Error(`❌ Error ${res.status}: ${data?.error?.message||'Unknown'}`);
+    }
+    const reply=data?.choices?.[0]?.message?.content;
+    if(!reply)throw new Error('Empty response. Dobara try karo.');
+    conv.push({role:'assistant',content:reply});
+    finishThinking(thk,reply,false);
+  }catch(e){
+    let em=e.message||'Unknown error';
+    if(em.includes('fetch')||em.includes('network')||em.includes('Failed'))
+      em='🌐 <strong>Network Error!</strong><br>File ko VS Code Live Server se chalao ya Python HTTP server use karo.';
+    finishThinking(thk,em,true);conv.pop();
+  }
+  busy=false;document.getElementById('sndBtn').disabled=false;ta.focus();
+}
+
+// Init
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('gkey').addEventListener('keydown',e=>{if(e.key==='Enter')launch();});
+});
+</script>
+</body>
+</html>
